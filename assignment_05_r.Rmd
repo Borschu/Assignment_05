@@ -16,6 +16,9 @@ Install / load packages:
 
 # Getting to know the API
 
+Limit: 5000 API calls per day
+rate limit: 5 requests per second
+
 ```{r}
 
 ```
