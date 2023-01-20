@@ -20,7 +20,8 @@ Limit: 5000 API calls per day
 rate limit: 5 requests per second
 
 ```{r}
-
+# read file for api key
+source("C:/Users/schur/OneDrive/Dokumente/Studium/Data Science Master Tübingen/1. Semester/Data Science Project Management/Assignment/key_assignment_5.R")
 ```
 
 # Interacting with the API - the basics
