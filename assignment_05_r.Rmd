@@ -1,0 +1,46 @@
+---
+title: "Assignment 05 R"
+author: "Robert Schütz"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# General
+
+Github-Projekt URL: https://github.com/Borschu/Assignment_05
+
+Install / load packages:
+```{r}
+
+```
+
+# Getting to know the API
+
+```{r}
+
+```
+
+# Interacting with the API - the basics
+
+```{r}
+
+```
+
+# Interacting with the API - advanced
+
+```{r}
+
+```
+
+# Visualizing the extracted data
+
+```{r}
+
+```
+
+# Event locations in other countries
+
+```{r}
+
+```
+
