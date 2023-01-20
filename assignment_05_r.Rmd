@@ -12,6 +12,13 @@ Github-Projekt URL: https://github.com/Borschu/Assignment_05
 Install / load packages:
 ```{r}
 
+#install.packages("httr")
+library("httr")
+
+library("tidyverse")
+
+#install.packages("magrittr")
+library("magrittr")
 ```
 
 # Getting to know the API
@@ -26,11 +33,89 @@ source("C:/Users/schur/OneDrive/Dokumente/Studium/Data Science Master Tübingen/
 
 # Interacting with the API - the basics
 
+## (7)
 ```{r}
+# search for all venues in Germany (where countryCode = DE)
+res_venue_ger <- GET(url = "https://app.ticketmaster.com/discovery/v2/venues/",
+                     query = list(apikey = ticketmaster_key,
+                                  "countryCode" = "DE"))
 
+# print content of the query
+con_venue_ger <- content(res_venue_ger)
+con_venue_ger
 ```
 
+## (8)
+
+```{r}
+## name
+name <- map_chr(con_venue_ger$`_embedded`$venues, "name")
+
+## city
+# create empty city-vector
+city <- c()
+# loop over all 20 venues
+for (i in 1:20){
+  # add name to city vector
+  city <- append(city, con_venue_ger$`_embedded`$venues[[i]]$city$name)
+}
+
+
+## postal code 
+# create posal code vector (map_dbl doesnt work), default to 
+postalCode <- as.double(map_chr(con_venue_ger$`_embedded`$venues, "postalCode", .default = NA))
+
+
+## address
+# create empty adress vector
+address <- c()
+# append values via loop
+# if there is no such value create NA
+for (i in 1:20){
+  address <- append(address, ifelse(is.null(con_venue_ger$`_embedded`$venues[[i]]$address$line1),
+                                    NA, con_venue_ger$`_embedded`$venues[[i]]$address$line1))
+}
+
+## url 
+# create url vector
+url <- map_chr(con_venue_ger$`_embedded`$venues, "url")
+
+## longitude 
+# create empty longitude-vector
+longitude <- c()
+# loop over all 20 venues
+# if the value doesn exist ->NA, else append by the specific value
+for (i in 1:20){
+  # add name to longitude vector
+  longitude <- append(longitude, ifelse(is.null(con_venue_ger$`_embedded`$venues[[i]]$location$longitude),
+                                    NA, con_venue_ger$`_embedded`$venues[[i]]$location$longitude))
+}
+# change datatype to double
+longitude <- as.double(longitude)
+
+## latitude
+# create empty latitude-vector
+latitude <- c()
+# loop over all 20 venues
+# if the value doesn exist ->NA, else append by the specific value
+for (i in 1:20){
+  # add name to longitude vector
+  latitude <- append(latitude, ifelse(is.null(con_venue_ger$`_embedded`$venues[[i]]$location$latitude),
+                                    NA, con_venue_ger$`_embedded`$venues[[i]]$location$latitude))
+}
+# change datatype to double
+latitude <- as.double(latitude)
+
+# create dataframe
+venue_ger <- data.frame(name, city, postalCode,address, url, longitude, latitude)
+
+# das folgede könnte man nutzen um die 20 zu ersetzen, damit diese nicht hard gecoded ist
+#con_venue_ger$page$size
+```
+
+
 # Interacting with the API - advanced
+
 
 ```{r}
 
