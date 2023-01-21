@@ -113,12 +113,130 @@ venue_ger <- data.frame(name, city, postalCode,address, url, longitude, latitude
 #con_venue_ger$page$size
 ```
 
-
 # Interacting with the API - advanced
 
-
 ```{r}
+# determine how many pages exist
+con_venue_ger$page$totalPages
+## 238
 
+#res_venue_ger_238 <- GET(url = "https://app.ticketmaster.com/discovery/v2/venues/",
+#                     query = list(apikey = ticketmaster_key,
+#                                  "countryCode" = "DE",
+#                                  "page" = 238))
+#content(res_venue_ger_238)
+
+create_df <- function(countryCode){
+  page <- GET(url = "https://app.ticketmaster.com/discovery/v2/venues/",
+                     query = list(apikey = ticketmaster_key,
+                                  "countryCode" = countryCode))
+  Sys.sleep(0.2)
+  con_page <- content(page)
+  nr_pages <- con_page$page$totalPages
+  nr_entries <- con_page$page$size
+  
+  #name <- c()
+  #city <- c()
+  #postalCode <- c()
+  #address <- c()
+  #url <- c()
+  #longitude <- c()
+  #latitude <- c()
+  
+  df_all <- data.frame(name = character(), 
+                       city = character(), 
+                       postalCode = double(),
+                       address = character(), 
+                       url = character(), 
+                       longitude = double(), 
+                       latitude = double())
+  
+  for (p in 0:nr_pages){
+    
+    page <- GET(url = "https://app.ticketmaster.com/discovery/v2/venues/",
+                     query = list(apikey = ticketmaster_key,
+                                  "countryCode" = countryCode,
+                                  "page" = p))
+    content = content(page)
+    
+    ## name
+name <- map_chr(content$`_embedded`$venues, "name", , .default = NA)
+
+## city
+# create empty city-vector
+city <- c()
+# loop over all 20 venues
+for (i in 1:nr_entries){
+  # add name to city vector
+  city <- append(city, ifelse(is.null(content$`_embedded`$venues[[i]]$city$name),NA,
+                              content$`_embedded`$venues[[i]]$city$name))
+}
+
+
+## postal code 
+# create posal code vector (map_dbl doesnt work), default to prevent error if value is missing
+postalCode <- as.double(map_chr(content$`_embedded`$venues, "postalCode", .default = NA))
+
+
+## address
+# create empty adress vector
+address <- c()
+# append values via loop
+# if there is no such value create NA
+for (i in 1:nr_entries){
+  address <- append(address, ifelse(is.null(content$`_embedded`$venues[[i]]$address$line1),
+                                    NA, content$`_embedded`$venues[[i]]$address$line1))
+}
+
+## url 
+# create url vector
+url <- map_chr(content$`_embedded`$venues, "url", .default = NA)
+
+## longitude 
+# create empty longitude-vector
+longitude <- c()
+# loop over all 20 venues
+# if the value doesn exist ->NA, else append by the specific value
+for (i in 1:nr_entries){
+  # add name to longitude vector
+  longitude <- append(longitude, ifelse(is.null(content$`_embedded`$venues[[i]]$location$longitude),
+                                    NA, content$`_embedded`$venues[[i]]$location$longitude))
+}
+# change datatype to double
+longitude <- as.double(longitude)
+
+## latitude
+# create empty latitude-vector
+latitude <- c()
+# loop over all 20 venues
+# if the value doesn exist ->NA, else append by the specific value
+for (i in 1:nr_entries){
+  # add name to longitude vector
+  latitude <- append(latitude, ifelse(is.null(content$`_embedded`$venues[[i]]$location$latitude),
+                                    NA, content$`_embedded`$venues[[i]]$location$latitude))
+}
+# change datatype to double
+latitude <- as.double(latitude)
+print(p)
+# create dataframe
+df_page <- data.frame(name, city, postalCode,address, url, longitude, latitude)
+#print("hello world 2")
+#
+Sys.sleep(1.5)
+  }
+  df_all <- rbind(df_all, df_page)
+  return(df_all)
+}
+
+create_df("DE")
+
+page <- GET(url = "https://app.ticketmaster.com/discovery/v2/venues/",
+                     query = list(apikey = ticketmaster_key,
+                                  "countryCode" = "DE",
+                                  "page" = 25))
+    content = content(page)
+
+content
 ```
 
 # Visualizing the extracted data
