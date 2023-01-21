@@ -19,6 +19,8 @@ library("tidyverse")
 
 #install.packages("magrittr")
 library("magrittr")
+
+library("maps")
 ```
 
 # Getting to know the API
@@ -160,8 +162,8 @@ create_df <- function(countryCode){
     content = content(page)
     
     ## name
-name <- map_chr(content$`_embedded`$venues, "name", , .default = NA)
-
+name <- map_chr(content$`_embedded`$venues, "name", .default = NA)
+#print(name)
 ## city
 # create empty city-vector
 city <- c()
@@ -220,34 +222,109 @@ latitude <- as.double(latitude)
 print(p)
 # create dataframe
 df_page <- data.frame(name, city, postalCode,address, url, longitude, latitude)
+
+df_all <- rbind(df_all, df_page)
 #print("hello world 2")
 #
 Sys.sleep(1.5)
+
   }
-  df_all <- rbind(df_all, df_page)
+  
   return(df_all)
 }
 
-create_df("DE")
+venue_de <- create_df("DE")
 
-page <- GET(url = "https://app.ticketmaster.com/discovery/v2/venues/",
-                     query = list(apikey = ticketmaster_key,
-                                  "countryCode" = "DE",
-                                  "page" = 25))
-    content = content(page)
+# print head of dataframe
+print(head(venue_de,10))
+print(dim(venue_de))
 
-content
 ```
 
 # Visualizing the extracted data
 
+## (10)
 ```{r}
-
+# based on the code that is mentioned in the assignment 
+ggplot(venue_ger) +
+borders("world", "Germany", colour = "black", fill = "grey90") +
+  # add geom_point to create points for the locations
+  # add alpha to make points transparent (-> to make overlaying points visible)
+  geom_point(aes(longitude,latitude),
+             alpha = 0.4)+
+theme_void() +
+coord_quickmap() +
+labs(title = "Event locations across Germany",
+caption = "Source: ticketmaster.com") +
+theme(title = element_text(size=8, face='bold'),
+plot.caption = element_text(face = "italic"))
 ```
+
+## (11)
+```{r}
+# create NAs for latitude / longitude if  outside from germany
+# write a function to make life easier for the next tasks
+
+adapt_long_lat <- function(df_country,long_lower,long_upper,lat_lower,lat_upper){
+  df_country$longitude <- ifelse(df_country$longitude < long_lower, NA, df_country$longitude)
+  
+  df_country$longitude <- ifelse(df_country$longitude > long_upper, NA, df_country$longitude)
+  
+  df_country$latitude <- ifelse(df_country$latitude < lat_lower, NA, df_country$latitude)
+  
+  df_country$latitude <- ifelse(df_country$latitude > lat_upper, NA, df_country$latitude)
+  
+  return(df_country)
+}
+
+#longitude is outside the range (5.866, 15.042) or
+#where the value of latitude is outside the range (47.270, 55.059)
+venue_de_adjust <- adapt_long_lat(venue_ger,5.866, 15.042,47.270, 55.059)
+
+
+# visualize venues with adapted longitude /latitude
+
+ggplot(venue_de_adjust) +
+borders("world", "Germany", colour = "black", fill = "grey90") +
+  # add geom_point to create points for the locations
+  # add alpha to make points transparent (-> to make overlaying points visible)
+  geom_point(aes(longitude,latitude),
+             alpha = 0.4)+
+theme_void() +
+coord_quickmap() +
+labs(title = "Event locations across Germany",
+caption = "Source: ticketmaster.com") +
+theme(title = element_text(size=8, face='bold'),
+plot.caption = element_text(face = "italic"))
+```
+
 
 # Event locations in other countries
 
+## (12)
+
 ```{r}
+# adjust the following code if its clear why the function thrwos errors
+
+venue_de <- create_df("DE")
+
+venue_de_adjust <- adapt_long_lat(venue_ger,5.866, 15.042,47.270, 55.059)
+
+
+# visualize venues with new 
+
+ggplot(venue_de_adjust) +
+borders("world", "Germany", colour = "black", fill = "grey90") +
+  # add geom_point to create points for the locations
+  # add alpha to make points transparent (-> to make overlaying points visible)
+  geom_point(aes(longitude,latitude),
+             alpha = 0.4)+
+theme_void() +
+coord_quickmap() +
+labs(title = "Event locations across Germany",
+caption = "Source: ticketmaster.com") +
+theme(title = element_text(size=8, face='bold'),
+plot.caption = element_text(face = "italic"))
 
 ```
 
