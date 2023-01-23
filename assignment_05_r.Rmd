@@ -9,6 +9,12 @@ output: html_document
 
 Github-Projekt URL: https://github.com/Borschu/Assignment_05
 
+Sometimes it seems that Markdown has problems outputting so much especially if
+changes are unsaved.
+(eg. regarding the graphs it states sometimes "kann png()-Gerät nicht starten").
+Saving the document, Restart R, clear all output and run helped me to solve this
+problem.
+
 Install / load packages:
 ```{r}
 
@@ -264,6 +270,8 @@ print(dim(venue_de))
 # Visualizing the extracted data
 
 ## (10)
+
+ 
 ```{r}
 # based on the code that is mentioned in the assignment the venues are visualized
 ggplot(venue_de) +
