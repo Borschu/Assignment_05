@@ -1,6 +1,6 @@
 ---
 title: "Assignment 05 R"
-author: "Robert Schütz"
+author: "R. Schütz"
 date: "`r Sys.Date()`"
 output: html_document
 ---
@@ -27,6 +27,7 @@ library("maps")
 
 Limit: 5000 API calls per day
 rate limit: 5 requests per second
+Only the 1000th item can be retrieved (size*page <1000)
 
 ```{r}
 # read file for api key
@@ -42,15 +43,17 @@ res_venue_ger <- GET(url = "https://app.ticketmaster.com/discovery/v2/venues/",
                      query = list(apikey = ticketmaster_key,
                                   "countryCode" = "DE"))
 
-# print content of the query
+# get content of the query and print it
 con_venue_ger <- content(res_venue_ger)
 con_venue_ger
 ```
+We can see different lists that are nested in each other. For each venue multiple attributes (name, type, id, test, url,...) exist. For some of the attributes a specific value is directly given (for example for name -> Gruenspan (first venue)). Some of these attributes have another layer (for example location has a further layer for longitude / latitude). At the end of the printed output you an see some statistics about the request. For example that in total 238 pages or 4745 Elements (venues in Germany) exist.
 
 ## (8)
 
 ```{r}
 ## name
+# get the names of the venue
 name <- map_chr(con_venue_ger$`_embedded`$venues, "name")
 
 ## city
@@ -64,12 +67,12 @@ for (i in 1:20){
 
 
 ## postal code 
-# create posal code vector (map_dbl doesnt work), default to 
+# create postal code vector (map_dbl doesnt work), default to NA -> if there is no Postal code then NA
 postalCode <- as.double(map_chr(con_venue_ger$`_embedded`$venues, "postalCode", .default = NA))
 
 
 ## address
-# create empty adress vector
+# create empty address vector
 address <- c()
 # append values via loop
 # if there is no such value create NA
@@ -88,7 +91,7 @@ longitude <- c()
 # loop over all 20 venues
 # if the value doesn exist ->NA, else append by the specific value
 for (i in 1:20){
-  # add name to longitude vector
+  # add value to longitude vector
   longitude <- append(longitude, ifelse(is.null(con_venue_ger$`_embedded`$venues[[i]]$location$longitude),
                                     NA, con_venue_ger$`_embedded`$venues[[i]]$location$longitude))
 }
@@ -101,51 +104,37 @@ latitude <- c()
 # loop over all 20 venues
 # if the value doesn exist ->NA, else append by the specific value
 for (i in 1:20){
-  # add name to longitude vector
+  # add value to longitude vector
   latitude <- append(latitude, ifelse(is.null(con_venue_ger$`_embedded`$venues[[i]]$location$latitude),
                                     NA, con_venue_ger$`_embedded`$venues[[i]]$location$latitude))
 }
 # change datatype to double
 latitude <- as.double(latitude)
 
-# create dataframe
+# create dataframe with vectors
 venue_ger <- data.frame(name, city, postalCode,address, url, longitude, latitude)
 
-# das folgede könnte man nutzen um die 20 zu ersetzen, damit diese nicht hard gecoded ist
-#con_venue_ger$page$size
+
 ```
 
 # Interacting with the API - advanced
 
 ```{r}
-# determine how many pages exist
-con_venue_ger$page$totalPages
-## 238
-
-#res_venue_ger_238 <- GET(url = "https://app.ticketmaster.com/discovery/v2/venues/",
-#                     query = list(apikey = ticketmaster_key,
-#                                  "countryCode" = "DE",
-#                                  "page" = 238))
-#content(res_venue_ger_238)
-
+# create function to get all venues for a specific country
 create_df <- function(countryCode){
+  # get the first page
   page <- GET(url = "https://app.ticketmaster.com/discovery/v2/venues/",
                      query = list(apikey = ticketmaster_key,
                                   "countryCode" = countryCode))
+  # let the system sleep because of the rate limit
   Sys.sleep(0.2)
+  # get content of page
   con_page <- content(page)
+  # get nr. of pages and nr. of entries per page
   nr_pages <- con_page$page$totalPages
   nr_entries <- con_page$page$size
   
-  
-  #name <- c()
-  #city <- c()
-  #postalCode <- c()
-  #address <- c()
-  #url <- c()
-  #longitude <- c()
-  #latitude <- c()
-  
+  # create empty dataframe (after the first iteration this dataframe is used for the first )
   df_all <- data.frame(name = character(), 
                        city = character(), 
                        postalCode = double(),
@@ -154,27 +143,37 @@ create_df <- function(countryCode){
                        longitude = double(), 
                        latitude = double())
   
+  # loop over all pages
   for (p in 0:(nr_pages-1)){
     
+    # often the API request throws an error when looping over multiple pages
+    # thats why the while loop is introduced
     control <- NULL
+    # while loop checks if control variable is null
     while(is.null(control)){
+      # get venues for a specific contry code and specific page
       page <- GET(url = "https://app.ticketmaster.com/discovery/v2/venues/",
                      query = list(apikey = ticketmaster_key,
                                   "countryCode" = countryCode,
                                   "page" = p))
+      # get content of a page
       content = content(page)
-      
+      # create controll variable
       control <- content$`_embedded`$venues
     }
     
-    
+    # the last page is usually not full
+    # to get the number of elements on the last page this if-statement
+    # is created
     if (p == nr_pages-1){
     nr_entries = con_page$page$totalElements %% nr_entries
-  }
+    }
     
     ## name
+    # get names of venues (and create a vector)
+    # the .default = NA sets missings to NA
 name <- map_chr(content$`_embedded`$venues, "name", .default = NA)
-#print(name)
+
 ## city
 # create empty city-vector
 city <- c()
@@ -187,7 +186,7 @@ for (i in 1:nr_entries){
 
 
 ## postal code 
-# create posal code vector (map_dbl doesnt work), default to prevent error if value is missing
+# create postal code vector (map_dbl doesnt work), default to prevent error if value is missing
 postalCode <- as.double(map_chr(content$`_embedded`$venues, "postalCode", .default = NA))
 
 
@@ -230,24 +229,34 @@ for (i in 1:nr_entries){
 }
 # change datatype to double
 latitude <- as.double(latitude)
+
+# print p to track the progress of the function
 print(p)
+
 # create dataframe
 df_page <- data.frame(name, city, postalCode,address, url, longitude, latitude)
 
+# bind the dataframes together
 df_all <- rbind(df_all, df_page)
-#print("hello world 2")
-#
+
+# let system sleep because of the rate limit
 Sys.sleep(0.2)
 
   }
   
+  # return dataframe
   return(df_all)
 }
 
+# create dataframe with venues for Germany
 venue_de <- create_df("DE")
 
 # print head of dataframe
+print("The first 10 rows of the dataframe: ")
 print(head(venue_de,10))
+
+# print dimension of the dataframe
+print("Dimensions of the dataframe: ")
 print(dim(venue_de))
 
 ```
@@ -256,8 +265,8 @@ print(dim(venue_de))
 
 ## (10)
 ```{r}
-# based on the code that is mentioned in the assignment 
-ggplot(venue_ger) +
+# based on the code that is mentioned in the assignment the venues are visualized
+ggplot(venue_de) +
 borders("world", "Germany", colour = "black", fill = "grey90") +
   # add geom_point to create points for the locations
   # add alpha to make points transparent (-> to make overlaying points visible)
@@ -277,24 +286,21 @@ plot.caption = element_text(face = "italic"))
 # write a function to make life easier for the next tasks
 
 adapt_long_lat <- function(df_country,long_lower,long_upper,lat_lower,lat_upper){
-  df_country$longitude <- ifelse(df_country$longitude < long_lower, NA, df_country$longitude)
+  # change the values to NA for long / lat if the values are outside the long/lat
+  # range 
+  df_country$longitude[df_country$longitude < long_lower] <- NA
+  df_country$longitude[df_country$longitude > long_upper] <- NA
+  df_country$latitude[df_country$latitude < lat_lower] <- NA
+  df_country$latitude[df_country$latitude > lat_upper] <- NA
   
-  df_country$longitude <- ifelse(df_country$longitude > long_upper, NA, df_country$longitude)
-  
-  df_country$latitude <- ifelse(df_country$latitude < lat_lower, NA, df_country$latitude)
-  
-  df_country$latitude <- ifelse(df_country$latitude > lat_upper, NA, df_country$latitude)
-  
-  return(df_country)
+    return(df_country)
 }
 
 #longitude is outside the range (5.866, 15.042) or
 #where the value of latitude is outside the range (47.270, 55.059)
-venue_de_adjust <- adapt_long_lat(venue_ger,5.866, 15.042,47.270, 55.059)
-
+venue_de_adjust <- adapt_long_lat(venue_de,5.866, 15.042,47.270, 55.059)
 
 # visualize venues with adapted longitude /latitude
-
 ggplot(venue_de_adjust) +
 borders("world", "Germany", colour = "black", fill = "grey90") +
   # add geom_point to create points for the locations
@@ -313,26 +319,41 @@ plot.caption = element_text(face = "italic"))
 # Event locations in other countries
 
 ## (12)
+In this task the venues for Italy will be examined.
 
 ```{r}
-# adjust the following code if its clear why the function thrwos errors
-
+# Create dataframe with venues in italy
 venue_it <- create_df("IT")
 
-venue_de_adjust <- adapt_long_lat(venue_ger,5.866, 15.042,47.270, 55.059)
-
-
-# visualize venues with new 
-
-ggplot(venue_de_adjust) +
-borders("world", "Germany", colour = "black", fill = "grey90") +
+# visualize the venues
+ggplot(venue_it) +
+borders("world", "Italy", colour = "black", fill = "grey90") +
   # add geom_point to create points for the locations
   # add alpha to make points transparent (-> to make overlaying points visible)
   geom_point(aes(longitude,latitude),
              alpha = 0.4)+
 theme_void() +
 coord_quickmap() +
-labs(title = "Event locations across Germany",
+labs(title = "Event locations across Italy",
+caption = "Source: ticketmaster.com") +
+theme(title = element_text(size=8, face='bold'),
+plot.caption = element_text(face = "italic"))
+
+# adjust the longitude / latitude column based on the latitude / longitude range
+# NAs if outside the latitude / longitude range
+venue_it_adjust <- adapt_long_lat(venue_it,6.616667, 18.516667, 37.933333, 47.083333)
+
+
+# visualize venues with adjusted longitude / latitude
+ggplot(venue_it_adjust) +
+borders("world", "Italy", colour = "black", fill = "grey90") +
+  # add geom_point to create points for the locations
+  # add alpha to make points transparent (-> to make overlaying points visible)
+  geom_point(aes(longitude,latitude),
+             alpha = 0.4)+
+theme_void() +
+coord_quickmap() +
+labs(title = "Event locations across Italy",
 caption = "Source: ticketmaster.com") +
 theme(title = element_text(size=8, face='bold'),
 plot.caption = element_text(face = "italic"))
