@@ -333,6 +333,14 @@ In this task the venues for Italy will be examined.
 # Create dataframe with venues in italy
 venue_it <- create_df("IT")
 
+# print head of dataframe
+print("The first 10 rows of the dataframe: ")
+print(head(venue_it,10))
+
+# print dimension of the dataframe
+print("Dimensions of the dataframe: ")
+print(dim(venue_it))
+
 # visualize the venues
 ggplot(venue_it) +
 borders("world", "Italy", colour = "black", fill = "grey90") +
