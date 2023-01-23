@@ -137,6 +137,7 @@ create_df <- function(countryCode){
   nr_pages <- con_page$page$totalPages
   nr_entries <- con_page$page$size
   
+  
   #name <- c()
   #city <- c()
   #postalCode <- c()
@@ -153,13 +154,23 @@ create_df <- function(countryCode){
                        longitude = double(), 
                        latitude = double())
   
-  for (p in 0:nr_pages){
+  for (p in 0:(nr_pages-1)){
     
-    page <- GET(url = "https://app.ticketmaster.com/discovery/v2/venues/",
+    control <- NULL
+    while(is.null(control)){
+      page <- GET(url = "https://app.ticketmaster.com/discovery/v2/venues/",
                      query = list(apikey = ticketmaster_key,
                                   "countryCode" = countryCode,
                                   "page" = p))
-    content = content(page)
+      content = content(page)
+      
+      control <- content$`_embedded`$venues
+    }
+    
+    
+    if (p == nr_pages-1){
+    nr_entries = con_page$page$totalElements %% nr_entries
+  }
     
     ## name
 name <- map_chr(content$`_embedded`$venues, "name", .default = NA)
@@ -226,7 +237,7 @@ df_page <- data.frame(name, city, postalCode,address, url, longitude, latitude)
 df_all <- rbind(df_all, df_page)
 #print("hello world 2")
 #
-Sys.sleep(1.5)
+Sys.sleep(0.2)
 
   }
   
@@ -306,7 +317,7 @@ plot.caption = element_text(face = "italic"))
 ```{r}
 # adjust the following code if its clear why the function thrwos errors
 
-venue_de <- create_df("DE")
+venue_it <- create_df("IT")
 
 venue_de_adjust <- adapt_long_lat(venue_ger,5.866, 15.042,47.270, 55.059)
 
