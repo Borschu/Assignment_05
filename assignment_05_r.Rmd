@@ -53,7 +53,10 @@ res_venue_ger <- GET(url = "https://app.ticketmaster.com/discovery/v2/venues/",
 con_venue_ger <- content(res_venue_ger)
 con_venue_ger
 ```
-We can see different lists that are nested in each other. For each venue multiple attributes (name, type, id, test, url,...) exist. For some of the attributes a specific value is directly given (for example for name -> Gruenspan (first venue)). Some of these attributes have another layer (for example location has a further layer for longitude / latitude). At the end of the printed output you an see some statistics about the request. For example that in total 238 pages or 4745 Elements (venues in Germany) exist.
+We can see different lists that are nested in each other. For each venue multiple attributes (name, type, id, test, url,...) exist. For some of the attributes a specific value is directly given (for example for name -> Gruenspan (first venue)). Some of these attributes have another layer (for example location has a further layer for longitude / latitude). At the end of the printed output you an see some statistics about the request. For example that in total 238 pages or 4745 elements exist for this request. (As mentioned
+in the later task these 4745 elements are not all venues in Germany, because as default
+"locale" = "en" is set. If you change to "locale" = "*" you will get all venues (see 
+task (9)))
 
 ## (8)
 
@@ -125,13 +128,18 @@ venue_ger <- data.frame(name, city, postalCode,address, url, longitude, latitude
 
 # Interacting with the API - advanced
 
+## (9)
 ```{r}
 # create function to get all venues for a specific country
 create_df <- function(countryCode){
   # get the first page
+  # we need to set "locale" = "*" because the default is "locale" = "en", with
+  # this default we get only the 4745 venues. To get all venues we need to set
+  # "locale" = "*"
   page <- GET(url = "https://app.ticketmaster.com/discovery/v2/venues/",
                      query = list(apikey = ticketmaster_key,
-                                  "countryCode" = countryCode))
+                                  "countryCode" = countryCode,
+                                  "locale" = "*"))
   # let the system sleep because of the rate limit
   Sys.sleep(0.2)
   # get content of page
@@ -161,6 +169,7 @@ create_df <- function(countryCode){
       page <- GET(url = "https://app.ticketmaster.com/discovery/v2/venues/",
                      query = list(apikey = ticketmaster_key,
                                   "countryCode" = countryCode,
+                                  "locale" = "*",
                                   "page" = p))
       # get content of a page
       content = content(page)
@@ -236,8 +245,6 @@ for (i in 1:nr_entries){
 # change datatype to double
 latitude <- as.double(latitude)
 
-# print p to track the progress of the function
-print(p)
 
 # create dataframe
 df_page <- data.frame(name, city, postalCode,address, url, longitude, latitude)
