@@ -53,7 +53,7 @@ res_venue_ger <- GET(url = "https://app.ticketmaster.com/discovery/v2/venues/",
 con_venue_ger <- content(res_venue_ger)
 con_venue_ger
 ```
-We can see different lists that are nested in each other. For each venue multiple attributes (name, type, id, test, url,...) exist. For some of the attributes a specific value is directly given (for example for name -> Gruenspan (first venue)). Some of these attributes have another layer (for example location has a further layer for longitude / latitude). At the end of the printed output you an see some statistics about the request. For example that in total 238 pages or 4745 elements exist for this request. (As mentioned
+We can see different lists that are nested in each other. For each venue multiple attributes (name, type, id, test, url,...) exist. For some of the attributes a specific value is directly given (for example for name). Some of these attributes have another layer (for example location has a further layer for longitude / latitude). At the end of the printed output you an see some statistics about the request. For example that in total 238 pages or 4745 elements exist for this request. (As mentioned
 in the later task these 4745 elements are not all venues in Germany, because as default
 "locale" = "en" is set. If you change to "locale" = "*" you will get all venues (see 
 task (9)))
